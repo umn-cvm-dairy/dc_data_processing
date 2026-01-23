@@ -105,7 +105,7 @@ clean_slate <- FALSE # this will delete all data in data/event_files and data/in
 ### EXAMPLE data google drive-----------
 # set this to TRUE to pull EXAMPLE data from google drive.
 # if you already have the data that you want in data/event_files set it to false
-get_EXAMPLE_data_from_google_drive <- FALSE
+get_EXAMPLE_data_from_google_drive <- TRUE
 
 ### milk data setings---------
 # if you also want to pull in milk data set this to true
@@ -183,7 +183,7 @@ quarto::quarto_render("report_explore_event_types.qmd")
 quarto::quarto_render("report_data_dictionary.qmd")
 
 ## Gerard's lameness report ---------------------------
-quarto::quarto_render("report_explore_lame.qmd")
+quarto::quarto_render("report_process_lame.qmd")
 
 
 # FUTURE STUFF ---------------------------
