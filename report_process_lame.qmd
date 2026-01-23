@@ -26,19 +26,21 @@ source('functions/fxn_dt_base.R') #functions to parse remarks and protocols
 source('functions/fxn_load_os_fxns.R')
 fxn_load_os_fxns()
 
-animals <-read_parquet('data/intermediate_files/animals.parquet') |> 
-   select(id_animal, date_left)
 
+# load animals to get animal level data
+animals <-read_parquet('data/intermediate_files/animals.parquet') |> 
+   select(location_event = location_list,
+          id_animal, id,  date_birth, date_left, date_sold, date_died)
+
+# load events
 events_formatted<-read_parquet('data/intermediate_files/events_formatted.parquet') |> 
    filter(event %in% c("LAME", "FOOTRIM")) |>  
   left_join(animals)
 
-pull_date <- max(events_formatted$date_event)
-farm_name <- unique(events_formatted$location_event)
 
-herd_deno <- read_parquet('data/intermediate_files/herd_denominators.parquet') |> 
-  mutate(farm = location_lact_list)
- 
+
+
+# for data checks
 summarize_events<-events_formatted |> 
   group_by(farm = location_event, event, protocols_remaining_after_numbers1, 
            remark_letters1
@@ -139,11 +141,13 @@ all_lesions <- c("dd", "footrot", 'wld', "sole_ulcer","injury",
 diseases <- c("inf", "noninf", "lesion")
   
   lame_data <- events_formatted |> 
-    select(id_animal, date_birth, date_fresh,lact_number, lact_group, 
-           date_archived, date_event,
+    select(location_event, id_animal, id, date_birth, date_fresh,lact_number, 
+           lact_group, lact_group_5,
+           date_archived, date_event, date_left, date_sold, date_died,
            event, 
            remark_letters1, protocols_letters1, location_event) |> 
-    filter(event %in% c("LAME", "TRIM")) |>
+    mutate(protocols_letters1 = if_else(protocols_letters1 %in% ("MAINTENANCE"),
+                                        "Trim Only", protocols_letters1)) |>
     fxn_code_lesions(protocol_var = protocols_letters1,
                      remark_var = remark_letters1) |> 
     # fix ab and NA issues
@@ -169,6 +173,30 @@ diseases <- c("inf", "noninf", "lesion")
                 'data/intermediate_files/lame_data.parquet')  
 
 
+
+```
+move to tioga date
+
+```{r}
+
+move <- read_parquet('data/intermediate_files/events_formatted.parquet') |> 
+  filter(event %in% c("MOVE") & location_event == "41464500") |>
+  # remove zeros form remarks
+  mutate(from_pen = as.numeric(str_remove_all(remark_numbers1, "0")),
+         to_pen = as.numeric(str_remove_all(remark_numbers2, "0"))
+         )|>
+  filter(from_pen < 10 & to_pen > 70 & date_event > ymd("20251101")) |>
+  mutate(date_move = date_event) |>
+  left_join(animals |> 
+              select(id_animal, date_birth, date_left, date_sold, date_died),
+            by = c("id_animal", "date_birth")) |>
+  select(c(id_animal, id, date_event, from_pen, to_pen, date_move,
+         date_birth, date_left, date_sold, date_died))
+
+write_parquet(move, 
+              'data/intermediate_files/move_tioga.parquet')
+  
+  
 
 ```
 
